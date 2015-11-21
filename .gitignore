@@ -3,4 +3,5 @@ node_modules
 dist
 .tmp
 _sandbox
+_gh-pages
 bower_components
