@@ -1,0 +1,895 @@
+<!doctype html>
+<!--
+  Copyright 2015 Google Inc.
+  
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  
+      http://www.apache.org/licenses/LICENSE-2.0
+  
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SPAN Rotator</title>
+  <script src="lib/jquery/dist/jquery.min.js"></script>
+  <link rel="stylesheet" href="styles/rotator.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono">
+</head>
+<body>
+
+<div id="letterbox1"></div>
+<div id="letterbox2"></div>
+
+<div id="slide-container">
+  <div class="meta-bar">
+    <div class="left">@GoogleDesign</div>
+    <div class="clock"></div>
+    <div class="right">#SPAN15</div>
+  </div>
+</div>
+
+<div id="menu-container">
+</div>
+
+<button id="full-screen-button">
+  <svg>
+    <path d="M7,14H5v5h5v-2H7V14z M5,10h2V7h3V5H5V10z M17,17h-3v2h5v-5h-2V17z M14,5v2h3v3h2V5H14z"/>
+  </svg>
+</button>
+
+<script>
+
+function makeIconSlide() {
+  var icons = [];
+  for (var i = 0; i < arguments.length; i++) {
+    icons.push('Span_Icon_' + arguments[i]);
+  }
+
+  return {
+    type: 'icons',
+    icons: icons,
+    duration: 6000,
+    nextDelay: 400,
+  };
+}
+
+var COLORS_SPAN_NYC = [
+  // ['#F50057', '#E40256'],
+  // ['#980C50', '#880E4F'],
+  ['#F50057', '#F50057'],
+  ['#880E4F', '#880E4F'],
+];
+
+var COLORS_SPAN_LONDON = [
+  // ['#00E5FF', '#03adcc'],
+  // ['#125198', '#1A237E'],
+  ['#00BCD4', '#00BCD4'],
+  ['#1A237E', '#1A237E'],
+];
+
+var INTRO_SLIDE = {
+  type: 'intro',
+  metaBar: false,
+  nextDelay: 0, // account for different stages of SP AN animation
+  duration: 2350,
+};
+
+var HASHTAG_SLIDE = {
+  type: 'largetext',
+  text: '#SPAN15',
+  duration: 5000,
+};
+
+var TWITTER_SLIDE = {
+  type: 'largetext',
+  text: '@GoogleDesign',
+  duration: 5000,
+};
+
+
+// scenes
+var SCENES = {
+
+  '1_morning': {
+    title: 'London 1. Morning',
+    newGroup: true,
+    order: 1,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Good Morning',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Welcome to\nSPAN London',
+        duration: 3500,
+      },
+      makeIconSlide('Beer', 'ChatBubbles', 'Doodle'),
+      {
+        type: 'largetext',
+        text: 'Espresso',
+        duration: 4000,
+      },
+      makeIconSlide('Battery', 'Coffee', 'Running'),
+      {
+        type: 'largetext',
+        text: 'Crushed Avocado on Rye',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Fruit and Yoghurt With Granola',
+        duration: 3000,
+      },
+      {
+        type: 'largetext',
+        text: 'Or Without Granola',
+        duration: 3000,
+      },
+      makeIconSlide('Cutlery', 'Cake', 'Share'),
+      {
+        type: 'largetext',
+        text: 'Yorkshire Gold',
+        duration: 3000,
+      },
+      {
+        type: 'largetext',
+        text: 'Proper Cuppa',
+        duration: 3000,
+      },
+      makeIconSlide('Coffee', 'Clock', 'Running'),
+      {
+        type: 'largetext',
+        text: 'Shoreditch\nLondon',
+        duration: 4000,
+      },
+      makeIconSlide('Microphone', 'PaperClip', 'People'),
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+    ]
+  },
+
+  '2_sessions_1': {
+    title: 'London 2. Sessions 1',
+    order: 2,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'schedule',
+        location: 'Panel / Plenary',
+        content: [
+          {
+            title: 'Design Tools:\nThe State of Play',
+            subtitle: 'Chris Conover, Parteek Saran,\nJustin Belcher, Koen Bok,\nPieter Omvlee, Pelin Kenez'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Workshop',
+        content: [
+          {
+            title: 'Digital Making\nfor Kids',
+            subtitle: 'Bethany Kobe, Shiva Jaini'
+          }
+        ],
+        duration: 6000,
+      },
+    ]
+  },
+
+  '3_lunch': {
+    title: 'London 3. Lunch',
+    order: 3,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Lunch',
+        duration: 4000,
+      },
+      makeIconSlide('Coffee', 'Beer', 'Cutlery'),
+      {
+        type: 'largetext',
+        text: 'Pork Pie',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cheese and Pickle Roll',
+        duration: 4000,
+      },
+      makeIconSlide('Battery', 'FloppyDrive', 'Volume'),
+      {
+        type: 'largetext',
+        text: 'Rare Roast British Beef',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Tunnock‘s Tea Cake',
+        duration: 4000,
+      },
+      makeIconSlide('Cake', 'Coffee', 'Cake'),
+      {
+        type: 'largetext',
+        text: 'Brill',
+        duration: 4000,
+      },
+      makeIconSlide('World', 'Lock', 'Key'),
+      {
+        type: 'largetext',
+        text: 'Shoreditch\nLondon',
+        duration: 4000,
+      },
+      makeIconSlide('Download', 'Ear', 'FingerPrint'),
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+    ]
+  },
+
+  '4_sessions_2': {
+    title: 'London 4. Sessions 2',
+    order: 4,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'schedule',
+        location: 'Panel / Plenary',
+        content: [
+          {
+            title: 'Designing for New Products',
+            subtitle: 'Braden Kowitz, Hannah Donovan,\nUtku Can, Nick Marsh, Denise Wilton'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Workshop',
+        content: [
+          {
+            title: 'Rocks: The Future of VR',
+            subtitle: 'Jessica Brillhart'
+          }
+        ],
+        duration: 6000,
+      },
+    ]
+  },
+
+  '5_coffee_break': {
+    title: 'London 5. Coffee Break',
+    order: 5,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Chocolate!\nLots of it.',
+        duration: 4000,
+      },
+      makeIconSlide('Coffee', 'Beer', 'Cake'),
+      {
+        type: 'largetext',
+        text: 'Coffee',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Tea',
+        duration: 3500,
+      },
+      makeIconSlide('MapMarker', 'Scissors', 'Camera'),
+      {
+        type: 'largetext',
+        text: 'Fancy a Cuppa',
+        duration: 3500,
+      },
+      makeIconSlide('ChatBubbles', 'People', 'Share'),
+      makeIconSlide('Volume', 'WiFi', 'Rotate'),
+      {
+        type: 'largetext',
+        text: 'Shoreditch\nLondon',
+        duration: 4000,
+      },
+      makeIconSlide('Phone', 'Clock', 'Bell'),
+      makeIconSlide('UploadCloud', 'Download', 'Beer'),
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+    ]
+  },
+
+  '6_sessions_3': {
+    title: 'London 6. Sessions 3',
+    order: 6,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'schedule',
+        location: 'Talk / Plenary',
+        content: [
+          {
+            title: 'Colophon & YES Studio',
+            subtitle: 'Simon Earith, James Musgrave,\nEdd Harrington, Anthony Sheret'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Workshop',
+        content: [
+          {
+            title: 'Programmed Art',
+            subtitle: 'Davide Fornari'
+          }
+        ],
+        duration: 6000,
+      },
+    ]
+  },
+
+  '7_happy_hour': {
+    title: 'London 7. Happy Hour',
+    order: 7,
+    colors: COLORS_SPAN_LONDON,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Shoreditch',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'G&T',
+        duration: 3500,
+      },
+      makeIconSlide('Beer', 'Ear', 'ShoppingCart'),
+      {
+        type: 'largetext',
+        text: 'Cornish Pasty',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Bacon Popcorn!!',
+        duration: 4000,
+      },
+      makeIconSlide('Beer', 'Cutlery', 'PuzzlePiece'),
+      {
+        type: 'largetext',
+        text: 'Beer',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Wine',
+        duration: 3000,
+      },
+      makeIconSlide('Beer', 'Beer', 'Beer'),
+      {
+        type: 'largetext',
+        text: 'Fancy',
+        duration: 3000,
+      },
+      {
+        type: 'largetext',
+        text: 'London',
+        duration: 4000,
+      },
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+      makeIconSlide('Running', 'People', 'Wrench'),
+      {
+        type: 'largetext',
+        text: 'Baio',
+        duration: 6000,
+      },
+      {
+        type: 'largetext',
+        text: 'Marty',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Dance Party',
+        duration: 5000,
+      },
+      {
+        type: 'largetext',
+        text: 'Thank You',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cheers',
+        duration: 4000,
+      },
+      makeIconSlide('Gear', 'People', 'Pencil'),
+    ]
+  },
+
+  'nyc_1_morning': {
+    title: 'NYC 1. Morning',
+    newGroup: true,
+    order: 100,
+    colors: COLORS_SPAN_NYC,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Good Morning',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Welcome to\nSPAN NYC',
+        duration: 3500,
+      },
+      makeIconSlide('Pizza', 'ChatBubbles', 'Doodle'),
+      {
+        type: 'largetext',
+        text: 'New York City',
+        duration: 3500,
+      },
+      {
+        type: 'largetext',
+        text: 'Coffee',
+        duration: 4000,
+      },
+      makeIconSlide('Battery', 'Coffee', 'Running'),
+      {
+        type: 'largetext',
+        text: 'Cold Brew',
+        duration: 2000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cold Brew with\nMilk',
+        duration: 2000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cold Brew with\nChoc Milk!?',
+        duration: 5000,
+      },
+      {
+        type: 'largetext',
+        text: 'Breakfast Burritos',
+        duration: 3500,
+      },
+      makeIconSlide('Cutlery', 'Pizza', 'Share'),
+      {
+        type: 'largetext',
+        text: 'Acai Bowls\nwith all the fixin\'s',
+        duration: 5000,
+      },
+      {
+        type: 'largetext',
+        text: 'Bantam Bagels',
+        duration: 3500,
+      },
+      makeIconSlide('Microphone', 'PaperClip', 'People'),
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+    ]
+  },
+
+  'nyc_2_sessions_1': {
+    title: 'NYC 2. Sessions 1',
+    colors: COLORS_SPAN_NYC,
+    order: 101,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'schedule',
+        location: 'Panel / Room 1',
+        content: [
+          {
+            title: 'Prototyping 2015',
+            subtitle: 'Khoi Vinh, Adam Debreczeni, Daniel Hooper, Clark Valberg, Andrew Pouliot'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Room 2',
+        content: [
+          {
+            title: 'An Animator’s Quest to Make a Mobile Game',
+            subtitle: 'Erica Gorochow'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Workshop / Room 3',
+        content: [
+          {
+            title: 'Handmade Computer',
+            subtitle: 'Taeyoon Choi'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Room 4',
+        content: [
+          {
+            title: 'Inscriptions in Stone',
+            subtitle: 'Nick Benson'
+          }
+        ],
+        duration: 6000,
+      },
+    ]
+  },
+
+  'nyc_3_lunch': {
+    title: 'NYC 3. Lunch',
+    colors: COLORS_SPAN_NYC,
+    order: 102,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Lunch',
+        duration: 4000,
+      },
+      makeIconSlide('Coffee', 'Beer', 'Cutlery'),
+      {
+        type: 'largetext',
+        text: 'Deconstructed Sandwiches',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Quinoa Bowls',
+        duration: 4000,
+      },
+      makeIconSlide('Battery', 'FloppyDrive', 'Volume'),
+      {
+        type: 'largetext',
+        text: 'Mini Molten Chocolate Cake',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'KALE',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Mini Apple Cobblers',
+        duration: 4000,
+      },
+      makeIconSlide('World', 'Lock', 'Key'),
+      {
+        type: 'largetext',
+        text: 'Coffee',
+        duration: 2000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cold Brew',
+        duration: 2000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cold Brew\nwith Milk',
+        duration: 4000,
+      },
+      makeIconSlide('Download', 'Ear', 'FingerPrint'),
+      {
+        type: 'largetext',
+        text: 'Coming up: Geoff Manaugh & Keller Easterling',
+        duration: 6000,
+      },
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+    ]
+  },
+
+  'nyc_4_sessions_2': {
+    title: 'NYC 4. Sessions 2',
+    colors: COLORS_SPAN_NYC,
+    order: 103,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'schedule',
+        location: 'Talk / Room 1',
+        content: [
+          {
+            title: 'How to be Relevant in Twenty Years',
+            subtitle: 'Jon Wiley'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Workshop / Room 2',
+        content: [
+          {
+            title: 'Design Collaboration',
+            subtitle: 'Matthew Levine, Adam Debreczeni, Owen Otto'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Workshop / Room 3',
+        content: [
+          {
+            title: 'Introduction to Human-Centered Design',
+            subtitle: 'Ektaa Aggarwal'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Room 4',
+        content: [
+          {
+            title: 'Staying Nimble',
+            subtitle: 'Julia Zeltser'
+          }
+        ],
+        duration: 6000,
+      },
+    ]
+  },
+
+  'nyc_5_coffee_break': {
+    title: 'NYC 5. Coffee Break',
+    colors: COLORS_SPAN_NYC,
+    order: 104,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Coffee',
+        duration: 4000,
+      },
+      makeIconSlide('Coffee', 'Beer', 'Pizza'),
+      {
+        type: 'largetext',
+        text: 'COFFEE!!',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Take a break',
+        duration: 4000,
+      },
+      makeIconSlide('MapMarker', 'Scissors', 'Camera'),
+      {
+        type: 'largetext',
+        text: 'Talk Amongst Yourselves',
+        duration: 4000,
+      },
+      {
+        type: 'smalltext',
+        textChoices: [
+          'Transitional Romanesque architecture was neither transitional nor Romanesque. Discuss.',
+          'The Italian neo realist movement in film was neither Italian nor neo nor particularly realist. Discuss.',
+          'Android Marshmallow is neither an android nor a marshmallow. Discuss.',
+        ],
+        duration: 7000,
+      },
+      makeIconSlide('ChatBubbles', 'People', 'Share'),
+      {
+        type: 'largetext',
+        text: 'Yadda\nYadda\nYadda',
+        duration: 4000,
+      },
+      makeIconSlide('Volume', 'WiFi', 'Rotate'),
+      {
+        type: 'largetext',
+        text: '“Netwerkin’ it”',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'SM Break',
+        duration: 4000,
+      },
+      makeIconSlide('Phone', 'Clock', 'Bell'),
+      {
+        type: 'largetext',
+        text: 'Coming up:\nPaula Matthusen',
+        duration: 6000,
+      },
+      {
+        type: 'largetext',
+        text: 'Cold Brew',
+        duration: 2000,
+      },
+      makeIconSlide('UploadCloud', 'Download', 'Beer'),
+      {
+        type: 'largetext',
+        text: 'Cold Brew\nwith Milk',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'Tea Time',
+        duration: 4000,
+      },
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+    ]
+  },
+
+  'nyc_6_sessions_3': {
+    title: 'NYC 6. Sessions 3',
+    colors: COLORS_SPAN_NYC,
+    order: 105,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'schedule',
+        location: 'Panel / Room 1',
+        content: [
+          {
+            title: 'What Makes Great Product Design?',
+            subtitle: 'Kim Bost, Liz Danzico, Katie Dill, Braden Kowitz, Leland Rechis'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Room 2',
+        content: [
+          {
+            title: 'The Interface',
+            subtitle: 'John Harwood'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Workshop / Room 3',
+        content: [
+          {
+            title: 'Design Writing',
+            subtitle: 'Amber Bravo, Paul Ford, Aileen Kwun, Kate Lee, Nicola Twilley'
+          }
+        ],
+        duration: 6000,
+      },
+      {
+        type: 'schedule',
+        location: 'Talk / Room 4',
+        content: [
+          {
+            title: 'Urban Icons',
+            subtitle: 'Lance Wyman'
+          }
+        ],
+        duration: 6000,
+      },
+    ]
+  },
+
+  'nyc_7_happy_hour': {
+    title: 'NYC 7. Happy Hour',
+    colors: COLORS_SPAN_NYC,
+    order: 106,
+    slideInfos: [
+      INTRO_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Party Time',
+        duration: 4000,
+      },
+      makeIconSlide('Beer', 'Ear', 'ShoppingCart'),
+      {
+        type: 'largetext',
+        text: 'Nancy Whang',
+        duration: 2000,
+      },
+      {
+        type: 'largetext',
+        text: 'NANCY WHANG!!',
+        duration: 4000,
+      },
+      makeIconSlide('Ear', 'PuzzlePiece', 'WiFi'),
+      {
+        type: 'largetext',
+        text: 'I’ll take\na Manhattan',
+        duration: 4000,
+      },
+      {
+        type: 'largetext',
+        text: 'I’ll take\nALL the Manhattans',
+        duration: 4000,
+      },
+      makeIconSlide('Cake', 'Wrench', 'Gear'),
+      {
+        type: 'largetext',
+        text: 'Thank you',
+        duration: 4000,
+      },
+      makeIconSlide('Clock', 'People', 'Pencil'),
+      INTRO_SLIDE,
+      HASHTAG_SLIDE,
+      TWITTER_SLIDE,
+      {
+        type: 'largetext',
+        text: 'Best.Day.Ever.',
+        duration: 6000,
+      },
+    ]
+  },
+
+  'test_icons': {
+    title: 'Icon Test',
+    colors: COLORS_SPAN_LONDON,
+    inMenu: false,
+    slideInfos: [
+      makeIconSlide('Cake', 'Gear', 'Pencil'),
+      makeIconSlide('PuzzlePiece', 'ShoppingCart', 'Wrench'),
+      makeIconSlide('Battery', 'Beer', 'Bell'),
+      makeIconSlide('Camera', 'ChatBubbles', 'Clock'),
+      makeIconSlide('Coffee', 'Cutlery', 'Doodle'),
+      makeIconSlide('Download', 'Ear', 'FingerPrint'),
+      makeIconSlide('FloppyDrive', 'Key', 'Lock'),
+      makeIconSlide('MapMarker', 'Microphone', 'PaperClip'),
+      makeIconSlide('People', 'Phone', 'Pizza'),
+      makeIconSlide('Rotate', 'Running', 'Scissors'),
+      makeIconSlide('Share', 'UploadCloud', 'Volume'),
+      makeIconSlide('WiFi', 'World', 'Wrench'),
+    ]
+  }
+};
+
+
+// loop sessiosn
+['2_sessions_1', '4_sessions_2', '6_sessions_3'].forEach(function(k) {
+  // show schedule 5 times
+  var si = SCENES[k].slideInfos;
+  SCENES[k].slideInfos = si
+      .concat(si.slice(1))
+      .concat(si.slice(1))
+      .concat(si.slice(1))
+      .concat(si.slice(1));
+});
+
+</script>
+
+<script src="scripts/rotator.js"></script>
+
+</body>
+</html>
