@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Google Inc.
+ * Copyright 2016 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,380 +13,495 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+'use strict';
 
-var IS_24_HOUR_CLOCK = false;
-var TRANSITION_TIME = 1000;
-var DEBUG = document.location.search.indexOf('_debug') > 0;
-var SPEED_MULTIPLIER = DEBUG ? 0.5 : 1;
+const uiHelpers = require('./uihelpers');
+const dataLoader = require('./dataloader');
 
-var g_sceneName = document.location.search.replace(/^\?/, '').replace(/_debug/, '');
-var g_scene = SCENES[g_sceneName];
-var g_slides = [];
-var g_currentSlideIndex;
-var g_nextSlideTimeout;
-var g_currentSlideTimeout;
-var g_nextBackgroundTimeout;
-var g_showNextSlideOnVisible = false;
+const SCENE_NAME = document.location.search.replace(/^\?|_debug/g, '');
+const IS_24_HOUR_CLOCK = !!SCENE_NAME.match(/TYO/);
 
+const NUM_COLOR_PALETTES = 4;
+const NUM_BACKGROUND_SHAPE_ANIMATIONS = 5;
+const BACKGROUND_CHANGE_DELAY = 500; // change colors and shapes 500ms after slide change
+const BACKGROUND_SHAPE_CHANGE_INTERVAL = 30000; // ensure shapes change at least once every 30 sec
 
-$(document).ready(function() {
-  // set up UI
-  if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
-    $('#full-screen-button').hide();
-  }
+let g_slides = [];
+let g_data = null;
 
-  $('#full-screen-button').click(function() {
-    goFullscreen();
-  });
+let useLocalData = true;
 
-  // set up rescale
-  var $body = $(document.body);
-  var $slideContainer = $('#slide-container');
+/**
+ * Bootstrap
+ */
+$(document).ready(() => {
+  setupKeyboard();
+  setupClockUpdater();
+  uiHelpers.setupFullscreenButton();
+  uiHelpers.setupRescaling();
 
-  function _rescale() {
-    var ow = $slideContainer.width();
-    var oh = $slideContainer.height();
+  let $loading = $('.loading');
+  $loading.addClass('is-visible');
 
-    var ww = $body.width();
-    var wh = $body.height();
-
-    var scale = 1;
-
-    if (ow / oh > ww / wh) {
-      // vertical letterboxing
-      scale = ww / ow;
-
-      var letterBoxPlusSlideHeight = (wh + oh * scale) / 2;
-      $('#letterbox1').css({
-        bottom: letterBoxPlusSlideHeight,
-        right: ''
-      });
-      $('#letterbox2').css({
-        top: letterBoxPlusSlideHeight,
-        left: ''
-      });
-    } else {
-      // horizontal letterboxing
-      scale = wh / oh;
-
-      var letterBoxPlusSlideWidth = (ww + ow / oh * wh) / 2;
-      $('#letterbox1').css({
-        right: letterBoxPlusSlideWidth,
-        bottom: ''
-      });
-      $('#letterbox2').css({
-        left: letterBoxPlusSlideWidth,
-        top: ''
-      });
-    }
-    $slideContainer.css('transform', 'scale(' + scale + ')');
-  }
-
-  _rescale();
-  $(window).resize(_rescale);
-
-  // set up clock
-  function _updateClock() {
-    var date = new Date();
-    var str = '';
-
-    if (IS_24_HOUR_CLOCK) {
-      str += date.getHours();
-    } else {
-      str += ((date.getHours() + 11) % 12 + 1);
-    }
-
-    str += ':';
-
-    var m = date.getMinutes();
-    str += ((m < 10) ? '0' : '') + m;
-
-    $('.clock').text(str);
-  }
-
-  _updateClock();
-  window.setInterval(_updateClock, 5000);
-
-  // kick things off
-  if (g_sceneName) {
-    startScene();
+  if(!useLocalData) {
+    dataLoader.onData(data => {
+      loadScene(data)
+    });
   } else {
-    showMenu();
+    let backupdata = require('./backupdata')();
+    loadScene(backupdata)
+  }
+
+  function loadScene(data) {
+    let $loading = $('.loading');
+    $loading.removeClass('is-visible');
+
+    // called any time there's a data change
+    console.log((g_data ? 'Reloaded' : 'Loaded') + ' scene data');
+    g_data = data;
+
+    let scenes = g_data[g_data.config.scenesKey || 'scenes'];
+    if (SCENE_NAME) {
+      startScene(scenes[SCENE_NAME]);
+    } else {
+      uiHelpers.showSceneMenu(scenes);
+    }
   }
 });
 
-$(document).on('visibilitychange', function() {
-  if (!document.hidden && g_showNextSlideOnVisible) {
-    nextSlide();
-  }
-})
 
-$(document).on('keydown', function(e) {
-  if (!g_sceneName) {
-    return;
-  }
-
-  var char = String.fromCharCode(e.keyCode).toLowerCase();
-  if (char == 's') {
-    startScene();
-  } else if (char == 'e') {
-    stopScene();
-  } else if (char == 'f') {
-    goFullscreen();
-  }
-});
-
-function goFullscreen() {
-  var slideContainer = $('#slide-container').get(0);
-  var rfs = slideContainer.webkitRequestFullscreen || slideContainer.requestFullscreen;
-  rfs.call(slideContainer);
-}
-
-function showMenu() {
-  $('#letterbox1, #letterbox2').hide();
-  var $menuContainer = $('#menu-container');
-  $('<h1>')
-      .text('Rotator Menu')
-      .appendTo($menuContainer);
-  var scenes = [];
-  for (var id in SCENES) {
-    var scene = SCENES[id];
-    if ('inMenu' in scene && !scene.inMenu) {
-      continue;
-    }
-    scene.id = id;
-    scenes.push(scene);
-  }
-
-  scenes.sort(function(x, y){ return x.order - y.order; });
-
-  for (var i = 0; i < scenes.length; i++) {
-    var scene = scenes[i];
-    var $item = $('<div>')
-        .addClass('item')
-        .appendTo($menuContainer);
-    if (scene.newGroup) {
-      $item.addClass('newgroup');
-    }
-    $('<a>')
-        .attr('href', '?' + scene.id)
-        .text(scene.title)
-        .appendTo($item);
-  }
-  $menuContainer.show();
-
-  $('#full-screen-button').hide();
-}
-
-function startScene() {
-  stopScene();
-
-  // prepare and start rotating slides
-  g_slides = [];
-  for (var i = 0; i < g_scene.slideInfos.length; i++) {
-    var info = $.extend({}, g_scene.slideInfos[i]);
-    info.nextDelay = (info.nextDelay || 0) * SPEED_MULTIPLIER;
-    info.duration *= SPEED_MULTIPLIER;
-    g_slides.push(info);
-  }
-
-  g_currentSlideIndex = -1;
-  nextSlide();
-
-  // start rotating background colors
-  var colorIndex = -1;
-  var firstColor = true;
-
-  function nextBackground() {
-    $('#slide-container').css('background', $('.slide-background').css('background'));
-    $('.slide-background').remove();
-
-    colorIndex = (colorIndex + 1) % g_scene.colors.length;
-    var colors = g_scene.colors[colorIndex];
-
-    var $slideBackground = $('<div>')
-        .addClass('slide-background')
-        .css('background', 'linear-gradient(to right, ' + colors[0] + ', ' + colors[1] + ')')
-        .appendTo('#slide-container');
-
-    if (firstColor) {
-      $slideBackground.addClass('first');
+/**
+ * Keyboard handler
+ */
+function setupKeyboard() {
+  $(document).on('keydown', e => {
+    if (!SCENE_NAME) {
+      return;
     }
 
-    window.setTimeout(function() {
-      $slideBackground.addClass('active');
-    }, 0);
-
-    firstColor = false;
-    $slideBackground.on('transitionend', nextBackground);
-  }
-
-  nextBackground();
+    let char = String.fromCharCode(e.keyCode).toLowerCase();
+    if (char == 'n') {
+      nextSlide();
+    } else if (char == 'r') {
+      g_slides.current = -1;
+      nextSlide();
+    } else if (char == 'p') {
+      pauseScene();
+    } else if (char == 'f') {
+      uiHelpers.goFullscreen();
+    }
+  });
 }
 
-function stopScene() {
-  g_slides = [];
 
-  if (g_nextBackgroundTimeout) {
-    window.clearTimeout(g_nextBackgroundTimeout);
-    g_nextBackgroundTimeout = 0;
-  }
-
-  if (g_nextSlideTimeout) {
-    window.clearTimeout(g_nextSlideTimeout);
-    g_nextSlideTimeout = 0;
-  }
-
-  if (g_currentSlideTimeout) {
-    window.clearTimeout(g_currentSlideTimeout);
-    g_currentSlideTimeout = 0;
-  }
-
-  $('.meta-bar').removeClass('visible');
-  $('.slide').remove();
+/**
+ * Updates the clock every second. A little hacky, as this is tied to
+ * _swapTextBlock in renderSlide.
+ */
+function setupClockUpdater() {
+  setInterval(() => {
+    let clockStr = uiHelpers.clockTime(IS_24_HOUR_CLOCK);
+    let $clockContent = $('.clock .block-content');
+    if ($clockContent.length) {
+      $clockContent.text(clockStr);
+      $('.clock').data('last-text', clockStr);
+    } else {
+      $('.clock').data('last-text', null);
+    }
+  }, 1000);
 }
 
-function nextSlide() {
-  if (document.hidden) {
-    g_showNextSlideOnVisible = true;
-    return;
-  }
 
-  g_showNextSlideOnVisible = false;
-
-  var previousSlide;
-  if (g_currentSlideIndex >= 0) {
-    previousSlide = g_slides[g_currentSlideIndex];
-  }
-
-  ++g_currentSlideIndex;
-  if (g_currentSlideIndex >= g_slides.length) {
-    // rotate!
-    g_currentSlideIndex = 0;
-  }
-
-  $('.slide.exiting').remove();
-
-  // exit thie current slide
-  window.setTimeout(function() {
-    $('.slide.active')
-        .removeClass('active')
-        .addClass('exiting');
-  }, 0);
-
-  // build and enter the new slide
-  var slide = g_slides[g_currentSlideIndex];
-  var $slide = buildSlide(slide);
-
-  var slideStartDelay = (previousSlide ? previousSlide.nextDelay || 250 : 250);
-
-  if (g_currentSlideTimeout) {
-    window.clearTimeout(g_currentSlideTimeout);
-  }
-
-  g_currentSlideTimeout = window.setTimeout(function() {
-    $slide.trigger('becameactive');
-    $slide.addClass('active');
-    $('.meta-bar').toggleClass('visible', ('metaBar' in slide ? slide.metaBar : true));
-    g_currentSlideTimeout = 0;
-  }, slideStartDelay);
-
-  if (g_nextSlideTimeout) {
-    window.clearTimeout(g_nextSlideTimeout);
-  }
-
-  g_nextSlideTimeout = window.setTimeout(nextSlide, slideStartDelay + slide.duration);
-}
-
-function buildSlide(slide) {
-  var $slide = $('<div>')
-      .addClass('slide')
-      .addClass('type-' + slide.type)
-      .appendTo('#slide-container');
-
-  switch (slide.type) {
-    case 'intro':
-      $slide.html('<video src="images/Span_RotatorLogo_SIZED_JS_v001.webm" autoplay>');
-      $slide.find('video').on('playing', function() {
-        $(this).addClass('playing');
-      });
-      break;
-
-    case 'largetext':
-    case 'smalltext':
-      var text = slide.text;
-      if (slide.textChoices) {
-        text = slide.textChoices[Math.floor(Math.random() * slide.textChoices.length)];
-      }
-
-      if (!Array.isArray(text)) {
-        text = [text];
-      }
-      $('<div>')
-          .addClass('text-line ' + (slide.type == 'smalltext' ? 'small' : ''))
-          .html(text.join('<br>').replace(/\n/g, '<br>'))
-          .appendTo($slide);
-      break;
-
-    case 'icons':
-      // randomly pick 3 icons
-      var icons = slide.icons.slice();
-      while (icons.length > 3) {
-        icons.splice(Math.floor(Math.random() * icons.length), 1);
-      }
-
-      var i = 0;
-      icons.forEach(function(icon) {
-        var $icon = $('<div>')
-            .addClass('icon')
-            .data('delay', i * 1400 * SPEED_MULTIPLIER)
-            .html('<video src="images/' + icon + '.webm?' + Math.random() + '">')
-            .appendTo($slide);
-        ++i;
-      });
-      $slide.on('becameactive', function() {
-        $slide.find('.icon').each(function() {
-          var $icon = $(this);
-          $icon.find('video').on('playing', function() {
-            $(this).addClass('playing');
-          });
-          window.setTimeout(function() {
-            $icon.addClass('active');
-            $icon.find('video').get(0).play();
-          }, $icon.data('delay') || 0);
-        });
-      });
-      break;
+/**
+ * Computes the default duration for the given slide.
+ */
+function defaultSlideDuration(slide) {
+  switch (slide.layout) {
+    case 'speaker':
+      return defaultDurationForSlideWithText(
+          slide.speakerName, slide.speakerTitle, slide.speakerSocial);
 
     case 'schedule':
-      // render location (supertitle)
-      $('<div>').addClass('text-line location').html(slide.location).appendTo($slide);
+      return defaultDurationForSlideWithText(
+          slide.scheduleText, slide.scheduleWhereWhen, slide.scheduleWho);
 
-      // render schedule items
-      if (!Array.isArray(slide.content)) {
-        slide.content = [slide.content];
-      }
-      slide.content.forEach(function(scheduleItem) {
-        // render title lines
-        if (!Array.isArray(scheduleItem.title)) {
-          scheduleItem.title = [scheduleItem.title];
-        }
-        $('<div>')
-            .addClass('text-line title')
-            .html(scheduleItem.title.join('<br>').replace(/\n/g, '<br>'))
-            .appendTo($slide);
+    case 'intro':
+      return 0;
 
-        // render subtitle lines
-        if (!Array.isArray(scheduleItem.subtitle)) {
-          scheduleItem.subtitle = [scheduleItem.subtitle];
-        }
-        $('<div>')
-            .addClass('text-line subtitle')
-            .html(scheduleItem.subtitle.join('<br>').replace(/\n/g, '<br>'))
-            .appendTo($slide);
-      });
-      break;
+    case 'default':
+    default:
+      return defaultDurationForSlideWithText(slide.text);
+  }
+}
+
+
+/**
+ * Computes the default duration (in milliseconds) for a slide
+ * with the given text contents.
+ */
+function defaultDurationForSlideWithText(...text) {
+  let numChars = text
+      .map(s => (s || '').length)
+      .reduce((x, y) => x + y, 0);
+  return 3000 + Math.ceil(numChars / 50) * 2000;
+}
+
+
+/**
+ * Kicks off the current scene, stopping any existing scene.
+ */
+function startScene(scene) {
+  if (!scene) {
+    console.error('Unknown scene');
+    return;
   }
 
-  return $slide;
+  $('#slide-container').attr('data-palette-group', scene.paletteGroup);
+
+  // prepare the list of slides, filling in any missing data
+  g_slides = Object.keys(scene.slides)
+      .sort()
+      .filter(key => !scene.slides[key].disabled)
+      .map(key => {
+        let slide = scene.slides[key];
+        slide.layout = slide.layout || 'default';
+        slide.duration = slide.duration || defaultSlideDuration(slide);
+        return slide;
+      });
+
+  // start rotating slides once all content is preloaded
+  let $loading = $('.loading');
+  $loading.addClass('is-visible');
+  preloadResources()
+      .then(() => {
+        $loading.removeClass('is-visible');
+        g_slides.current = -1;
+        nextSlide();
+      })
+      .catch(e => {
+        $loading.text('Loading error. See console for details');
+      });
+}
+
+
+/**
+ * Preload images and videos referenced in slides.
+ *
+ * Also sets a video slide's duration if it doesn't have one set.
+ */
+function preloadResources() {
+  let preloadPromises = [];
+  g_slides.forEach(slide => {
+    switch (slide.layout) {
+      case 'speaker': {
+        let url = slide.speakerImage;
+        if (url) {
+          preloadPromises.push(new Promise((resolve, reject) => {
+            $('<img>')
+                .attr('src', url)
+                .on('load', () => {
+                  console.log(`Loaded resource ${url}`);
+                  resolve();
+                })
+                .on('error', () => {
+                  console.error(`Failed to load ${url}`);
+                  reject();
+                });
+          }));
+        }
+        break;
+      }
+
+      case 'intro': {
+        let url = slide.introClip;
+        if (url) {
+          preloadPromises.push(new Promise((resolve, reject) => {
+            $('<video>')
+                .attr('src', url)
+                .on('canplaythrough', function() {
+                  console.log(`Loaded resource ${url}`);
+                  slide.duration = slide.duration || (1000 * $(this).get(0).duration);
+                  resolve();
+                })
+                .on('error', () => {
+                  console.error(`Failed to load ${url}`);
+                  reject();
+                });
+          }));
+        }
+        break;
+      }
+    }
+  });
+
+  return Promise.all(preloadPromises);
+}
+
+
+/**
+ * Pauses the currently playing scene, if playing
+ */
+function pauseScene() {
+  if (nextSlide.timeout) {
+    clearTimeout(nextSlide.timeout);
+    delete nextSlide.timeout;
+    clearTimeout(nextBackgroundShape.timeout);
+    delete nextBackgroundShape.timeout;
+  }
+}
+
+
+/**
+ * Shows the next slide in the current scene, and queues up
+ * the slide after that.
+ */
+function nextSlide() {
+  // clear any pending next slide calls
+  if (nextSlide.timeout) {
+    clearTimeout(nextSlide.timeout);
+    delete nextSlide.timeout;
+  }
+
+  if (!g_slides.length) {
+    return;
+  }
+
+  // if the document is hidden, show the next slide when it becomes visible again
+  if (document.hidden) {
+    $(document).one('visibilitychange', () => {
+      if (!document.hidden) {
+        nextSlide();
+      }
+    });
+    return;
+  }
+
+  // clean up old, already exited slide contents
+  $('#slide-container .exiting').remove();
+
+  // build and render/enter the next slide
+  g_slides.current = (g_slides.current + 1) % g_slides.length;
+  let isFirstSlideInScene = (g_slides.current == 0);
+  let slide = g_slides[g_slides.current];
+  renderSlide(slide);
+
+  // queue up the next background color and shape
+  setTimeout(() => {
+    updateColorPalette({
+      forcePalette: slide.forcePalette,
+      advanceToNext: isFirstSlideInScene
+    });
+
+    nextBackgroundShape();
+  }, BACKGROUND_CHANGE_DELAY);
+
+  // queue up the next slide
+  nextSlide.timeout = setTimeout(() => nextSlide(), slide.duration);
+}
+
+
+let g_paletteIndex = -1;
+let g_shapeAnimationIndex = -1;
+
+
+/**
+ * Updates the current color palette, optionally forcing a given palette key and optionally
+ * advancing the counter for the current numbered palette.
+ */
+function updateColorPalette(options) {
+  if (options.advanceToNext) {
+    g_paletteIndex = (g_paletteIndex + 1) % NUM_COLOR_PALETTES;
+  }
+
+  let palette = options.forcePalette || g_paletteIndex;
+  $('#slide-container').attr('data-palette', palette);
+}
+
+
+/**
+ * Switches to the next background shape, using a transition.
+ * This also schedules another background shape rotation if not called again
+ * within 30 seconds (except if the scene is paused).
+ */
+function nextBackgroundShape() {
+  ++g_shapeAnimationIndex;
+  g_shapeAnimationIndex = g_shapeAnimationIndex % NUM_BACKGROUND_SHAPE_ANIMATIONS;
+  $('#primitive-animation-desktop').attr('class', 'animation-desktop-' + g_shapeAnimationIndex);
+
+  if (nextBackgroundShape.timeout) {
+    clearTimeout(nextBackgroundShape.timeout);
+  }
+
+  let changeInterval = BACKGROUND_SHAPE_CHANGE_INTERVAL;
+  if (g_slides.length &&
+      'current' in g_slides &&
+      g_slides.current >= 0 &&
+      g_slides[g_slides.current].shapeChangeInterval) {
+    changeInterval = Number(g_slides[g_slides.current].shapeChangeInterval);
+  }
+
+  nextBackgroundShape.timeout = setTimeout(
+      () => nextBackgroundShape(),
+      changeInterval);
+}
+
+
+/**
+ * Force the browser to compute pre-transition properties for the given
+ * element(s), ensuring transitions are run.
+ *
+ * Call this *before* setting CSS properties on the element(s).
+ */
+function ensureTransition($sel) {
+  $sel.each((i, el) => $(el).css('width'));
+  return $sel;
+}
+
+
+/**
+ * Renders the given slide, trigger animations from the current slide
+ * if applicable.
+ */
+function renderSlide(slide) {
+  const $slideContainer = $('#slide-container');
+  const $clock = $slideContainer.find('.clock');
+  const $metaBar = $slideContainer.find('.meta-bar');
+  const $introVideo = $slideContainer.find('.intro-video');
+  const $slideContent = $slideContainer.find('.slide-content');
+  const $horizontalRule = $slideContainer.find('.horizontal-rule');
+  const $smallText = $slideContainer.find('.small-text');
+
+  if (slide.layout == 'intro') {
+    $introVideo.attr('src', slide.introClip);
+    $introVideo.get(0).currentTime = 0;
+    $introVideo.get(0).play();
+    $introVideo.one('playing', () => $introVideo.addClass('playing'));
+  } else {
+    $introVideo.removeClass('playing');
+  }
+
+  let stagger = 0;
+
+  if (slide.layout == 'intro' || slide.layout == 'empty') {
+    _swapTextBlock($metaBar, null, {stagger:0});
+    _swapTextBlock($clock, null, {stagger:0});
+    ensureTransition($horizontalRule).removeClass('active');
+
+    $slideContent.find('.content-group').removeClass('active').addClass('exiting');
+    $slideContent.find('.text-block').each((i, el) => _swapTextBlock($(el), null, {stagger:1}));
+    $slideContent.find('.image-block').each((i, el) => _swapImageBlock($(el), null, {stagger:1}));
+
+  } else {
+    _swapTextBlock($metaBar, g_data.config.metabarText, {stagger:0});
+    _swapTextBlock($clock, uiHelpers.clockTime(IS_24_HOUR_CLOCK), {stagger:0});
+    ensureTransition($horizontalRule).addClass('active');
+
+    $slideContent.find('.content-group').removeClass('active').addClass('exiting');
+    $slideContent.find('.text-block').each((i, el) => _swapTextBlock($(el), null, {stagger:1}));
+    $slideContent.find('.image-block').each((i, el) => _swapImageBlock($(el), null, {stagger:1}));
+
+    stagger = 1;
+
+    _swapTextBlock($smallText, slide.layout == 'smalltext' ? slide.text : null, {stagger:1});
+
+    let $newContentGroup = $('<div>')
+        .addClass('content-group')
+        .addClass('active')
+        .appendTo($slideContent);
+
+    switch (slide.layout) {
+      case 'default':
+        _newTextBlock($newContentGroup, 'text-block-default', slide.text);
+        break;
+
+      case 'speaker':
+        _newTextBlock($newContentGroup, 'text-block-speaker-name', slide.speakerName);
+        _newTextBlock($newContentGroup, 'text-block-speaker-title', slide.speakerTitle);
+        _newTextBlock($newContentGroup, 'text-block-speaker-social', slide.speakerSocial);
+        _newImageBlock($newContentGroup, 'image-block-speaker-image', slide.speakerImage);
+        break;
+
+      case 'schedule':
+        _newTextBlock($newContentGroup, 'text-block-schedule-text', slide.scheduleText);
+        _newTextBlock($newContentGroup, 'text-block-schedule-where-when', slide.scheduleWhereWhen);
+        _newTextBlock($newContentGroup, 'text-block-schedule-who', slide.scheduleWho);
+        break;
+    }
+  }
+
+  /**
+   * Helper for creating new text blocks
+   */
+  function _newTextBlock($targetContentGroup, className, text) {
+    let $block = $('<div>')
+        .addClass('text-block')
+        .addClass(className)
+        .appendTo($targetContentGroup);
+    _swapTextBlock($block, text);
+  }
+
+  /**
+   * Helper for creating new image blocks
+   */
+  function _newImageBlock($targetContentGroup, className, src) {
+    let $block = $('<div>')
+        .addClass('image-block')
+        .addClass(className)
+        .appendTo($targetContentGroup);
+    _swapImageBlock($block, src);
+  }
+
+  /**
+   * Helper for transitioning a text block
+   */
+  function _swapTextBlock($el, text, options) {
+    _swapBlock($el, jQuery.extend({
+      shouldCancel: () => $el.data('last-text') == text,
+      shouldSet: () => !!text,
+      setter: $content => $content.html(text.replace(/\|/g, '<br>'))
+    }, options));
+    $el.data('last-text', text);
+  }
+
+  /**
+   * Helper for transitioning an image block.
+   */
+  function _swapImageBlock($el, src, options) {
+    _swapBlock($el, jQuery.extend({
+      shouldCancel: () => $el.find('img').attr('src') == src,
+      shouldSet: () => !!src,
+      setter: $content => $content.empty().append($('<img>').attr('src', src))
+    }, options));
+  }
+
+  /**
+   * Internal helper for transitioning a text or image block
+   */
+  function _swapBlock($el, options) {
+    options = options || {};
+    if (options.shouldCancel && options.shouldCancel()) {
+      return;
+    }
+
+    let thisStagger;
+    if ('stagger' in options) {
+      thisStagger = options.stagger;
+    } else {
+      thisStagger = stagger;
+      ++stagger;
+    }
+
+    ensureTransition($el.find('.block-content'))
+        .addClass('exiting')
+        .removeClass('active')
+        .attr('data-stagger', thisStagger);
+    if (options.shouldSet()) {
+      let $newContent = $('<div>')
+          .addClass('block-content')
+          .attr('data-stagger', thisStagger)
+          .appendTo($el);
+      options.setter($newContent);
+      ensureTransition($newContent).addClass('active');
+    }
+  }
 }

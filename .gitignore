@@ -1,3 +1,4 @@
+*.zip
 node_modules
 .sass-cache
 dist
@@ -5,3 +6,4 @@ dist
 _sandbox
 _gh-pages
 bower_components
+.DS_Store

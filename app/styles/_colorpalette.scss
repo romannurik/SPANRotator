@@ -1,0 +1,69 @@
+/*
+ * Copyright 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@mixin color-palette($bg-color, $text-color, $primitive-color) {
+  background-color: $bg-color;
+  color: $text-color;
+
+  .bg-shapes {
+    svg {
+      stroke: $primitive-color;
+    }
+  }
+}
+
+#slide-container {
+  @include color-palette(#212121, #212121, #212121);
+
+  &[data-palette-group="la"] {
+    // group 0
+    @include color-palette(#2963FF, #FFFFFF, #212121);
+
+    &[data-palette="1"] {
+      @include color-palette(#FFCC00, #212121, #FFF);
+    }
+
+    &[data-palette="2"] {
+      @include color-palette(#FF7683, #212121, #FFF);
+    }
+
+    &[data-palette="3"] {
+      @include color-palette(#333333, #FFFFFF, #2963FF);
+    }
+  }
+
+  // Color transitions Tokyo
+  &[data-palette-group="tokyo"] {
+    // group 0
+    @include color-palette(#7B63F1, #FFF, #212121);
+
+    &[data-palette="1"] {
+      @include color-palette(#81E5C9, #212121, #FFF);
+    }
+
+    &[data-palette="2"] {
+      @include color-palette(#FFC8B8, #212121, #FFF);
+    }
+
+    &[data-palette="3"] {
+      @include color-palette(#333333, #FFF, #7B63F1);
+    }
+  }
+
+  &[data-palette="logo"] {
+    @include color-palette(#333333, #333333, #212121);
+  }
+}

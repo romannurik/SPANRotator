@@ -1,0 +1,128 @@
+/*
+ * Copyright 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+$transition-speed: 0.5s ease;
+
+@mixin svg-animation($name, $speed, $step) {
+  -webkit-animation: $name ($speed*1.8)+s 1 steps($step);
+  animation: $name ($speed*1.8)+s 1 steps($step);
+  -webkit-animation-fill-mode: forwards; /* Chrome, Safari, Opera */
+  animation-fill-mode: forwards;
+}
+
+.bg-shapes {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 50%;
+  margin-top: -24%;
+
+  .shape-mask-desktop {
+    display: block;
+    width: 70%;
+    position: relative;
+    overflow: hidden;
+    margin: 0 15%;
+
+    svg {
+      height: 100%;
+      opacity: .9;
+    }
+
+    &:before {
+      display: block;
+      content: "";
+      width: 100%;
+      padding-top: (850 / 1200) * 100%;
+    }
+
+    > svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+  }
+  // desktop animation 0.02721
+  .animation-desktop-0 {
+    @include svg-animation(film-desktop-0, 0.9, 33);
+  }
+  .animation-desktop-1 {
+    @include svg-animation(film-desktop-1, 0.76, 28);
+  }
+  .animation-desktop-2 {
+    @include svg-animation(film-desktop-2, 0.82, 30);
+  }
+  .animation-desktop-3 {
+    @include svg-animation(film-desktop-3, 0.87, 32);
+  }
+  .animation-desktop-4 {
+    @include svg-animation(film-desktop-4, 0.65, 24);
+  }
+
+  @keyframes film-desktop-0 {
+    0% {
+      transform: translateX(0%);
+      -webkit-transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-22.297%);
+      -webkit-transform: translateX(-22.297%);
+    }
+  }
+  @keyframes film-desktop-1 {
+    0% {
+      transform: translateX(-22.297%);
+      -webkit-transform: translateX(-22.297%);
+    }
+    100% {
+      transform: translateX(-41.216%);
+      -webkit-transform: translateX(-41.216%);
+    }
+  }
+  @keyframes film-desktop-2 {
+    0% {
+      transform: translateX(-41.216%);
+      -webkit-transform: translateX(-41.216%);
+    }
+    100% {
+      transform: translateX(-61.486%);
+      -webkit-transform: translateX(-61.486%);
+    }
+  }
+  @keyframes film-desktop-3 {
+    0% {
+      transform: translateX(-61.486%);
+      -webkit-transform: translateX(-61.486%);
+    }
+    100% {
+      transform: translateX(-83.108%);
+      -webkit-transform: translateX(-83.108%);
+    }
+  }
+  @keyframes film-desktop-4 {
+    0% {
+      transform: translateX(-83.108%);
+      -webkit-transform: translateX(-83.108%);
+    }
+    100% {
+      transform: translateX(-99.324%);
+      -webkit-transform: translateX(-99.324%);
+    }
+  }
+}

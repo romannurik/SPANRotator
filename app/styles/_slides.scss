@@ -1,0 +1,242 @@
+/*
+ * Copyright 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// size metrics
+
+$vertMargin: 72px;
+$horzMargin: 128px;
+$speakerImageWidth: 300px;
+
+// motion
+
+$enterDelay: .8s;
+$staggerDelay: .1s;
+
+$animBlockEnterOpacityDuration: 0s;
+$animBlockEnterOpacityStartDelay: .2s;
+$animBlockEnterMoveDuration: .6s;
+$animBlockEnterMoveEasing: cubic-bezier(.33, 0, 0, 1);
+
+$animBlockExitOpacityDuration: .2s;
+$animBlockExitMoveDuration: .2s;
+$animBlockExitMoveEasing: cubic-bezier(1, 0, 1, 1);
+
+$horizontalRuleOpacityDuration: .2s;
+
+$colorTransitionSpeed: .5s;
+
+// slide CSS
+
+#slide-container {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  pointer-events: none;
+  user-select: none;
+  transition:
+      background-color $colorTransitionSpeed ease,
+      color $colorTransitionSpeed ease;
+
+  .bg-shapes {
+    svg {
+      transition: stroke $colorTransitionSpeed ease;
+    }
+  }
+
+  .active {
+    transition-delay: $enterDelay !important;
+  }
+
+  @for $index from 1 through 20 {
+    [data-stagger="#{$index}"] {
+      transition-delay: ($staggerDelay * $index) !important;
+    }
+
+    .active[data-stagger="#{$index}"] {
+      transition-delay: ($staggerDelay * $index) + $enterDelay !important;
+    }
+  }
+
+  .text-block,
+  .image-block {
+    position: relative;
+
+    .block-content {
+      opacity: 0;
+      transform: translate3d(0, 80px, 0);
+
+      &.active {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+        transition:
+            opacity $animBlockEnterOpacityDuration ease,
+            transform $animBlockEnterMoveDuration $animBlockEnterMoveEasing;
+        transition-delay:
+            $animBlockEnterOpacityStartDelay + $enterDelay,
+            $enterDelay !important;
+      }
+
+      &.exiting {
+        transform: translate3d(0, -40px, 0);
+        transition:
+            opacity $animBlockExitOpacityDuration ease,
+            transform $animBlockExitMoveDuration $animBlockExitMoveEasing;
+      }
+
+      @for $index from 1 through 20 {
+        &.active[data-stagger="#{$index}"] {
+          transition-delay:
+              $animBlockEnterOpacityStartDelay + ($staggerDelay * $index) + $enterDelay,
+              ($staggerDelay * $index) + $enterDelay !important;
+        }
+      }
+
+    }
+  }
+
+  .clock,
+  .meta-bar,
+  .small-text {
+    font-size: 30px;
+    line-height: 32px;
+  }
+
+  .clock {
+    position: absolute;
+    left: $horzMargin;
+    right: $horzMargin;
+    top: $vertMargin;
+    z-index: 10;
+
+    .block-content {
+      text-align: right;
+    }
+  }
+
+  .meta-bar {
+    position: absolute;
+    left: $horzMargin;
+    top: $vertMargin;
+    right: $horzMargin;
+    z-index: 10;
+  }
+
+  .intro-video {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    visibility: hidden;
+    z-index: 10;
+
+    &.playing {
+      visibility: visible;
+    }
+  }
+
+  .small-text,
+  .slide-content .content-group {
+    position: absolute;
+    left: $horzMargin;
+    top: $vertMargin + 102px;
+    right: $horzMargin;
+    z-index: 10;
+  }
+
+  .small-text .block-content{
+    position: absolute;
+  }
+
+  .slide-content .content-group {
+    margin-top: -18px;
+    transition-delay: 0s !important;
+
+    .text-block-default,
+    .text-block-speaker-name,
+    .text-block-schedule-text {
+      font-size: 72px;
+      line-height: 88px;
+    }
+
+    .text-block-schedule-where-when {
+      text-transform: uppercase;
+      margin-top: 14px;
+      font-size: 30px;
+      line-height: 36px;
+    }
+
+    .text-block-speaker-title,
+    .text-block-speaker-social,
+    .text-block-schedule-who {
+      margin-top: 14px;
+      font-size: 46px;
+      line-height: 54px;
+    }
+
+    .text-block-speaker-name,
+    .text-block-speaker-title,
+    .text-block-speaker-social {
+      margin-right: $speakerImageWidth + 40px;
+    }
+
+    .image-block-speaker-image {
+      position: absolute;
+      top: 0;
+      right: 0;
+
+      &,
+      img {
+        width: $speakerImageWidth;
+      }
+    }
+  }
+
+  .horizontal-rule {
+    position: absolute;
+    left: $horzMargin;
+    right: $horzMargin;
+    top: $vertMargin + 62px;
+    height: 1px;
+    border-bottom-width: 4px;
+    border-bottom-style: solid;
+    z-index: 10;
+    transition: opacity $horizontalRuleOpacityDuration ease;
+    opacity: 0;
+
+    &.active {
+      opacity: 1;
+      transition-delay: $enterDelay;
+    }
+
+    &.exiting {
+      opacity: 0;
+    }
+  }
+}
+
+#letterbox1,
+#letterbox2 {
+  position: absolute;
+  z-index: 900;
+  background-color: #000;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
